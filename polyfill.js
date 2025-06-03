@@ -3,7 +3,7 @@
     for (const r of await navigator.serviceWorker.getRegistrations())
         await r.unregister();
     await navigator.serviceWorker.register("sw.js", {
-        scope: "/"
+        scope: "."
     });
 
     const original_html = new WeakMap();
