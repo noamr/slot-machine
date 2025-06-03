@@ -6,6 +6,8 @@
         scope: "."
     });
 
+    console.log("Service worker registered");
+
     const original_html = new WeakMap();
 
     function getMatchingSlots(url) {
@@ -66,6 +68,7 @@
                 const chunk = decoder.decode(value, {
                     stream: !done
                 });
+                console.log("Response: " + chunk);
                 temp_doc.write(chunk);
                 if (done)
                     break;
