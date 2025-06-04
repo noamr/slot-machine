@@ -20,63 +20,64 @@
             } catch (e) {
                 console.error(e);
             }
-            if (!pattern)
-                continue;
-            const new_result = pattern.exec(url);
-            if (!new_result) {
-                view.innerHTML = "";
-                continue;
-            }
-            if (original_html.has(view)) {
-                view.innerHTML = original_html.get(view);
-                view.dataset.state = "stale";
-            }
-            matching_views.set(view, new_result);
+            if (pattern)
+                matching_views.set(view, new_result);
         };
         return matching_views;
     }
+
+    async function updateViewsFromFetch(url) {
+        const response = await fetch(url, {
+            headers: {
+                views: Array.from(matching_views).map(([element, result]) => {
+                    const name = element.getAttribute("name");
+                    const groups = {
+                        ...result.pathname.groups,
+                        ...result.search.groups
+                    };
+                    const values = Object.entries(groups).flatMap(([name2, value]) => {
+                        return typeof value === "undefined" ? [] : [`${name2}=${value}`];
+                    }).join(",");
+                    return [name, values].join(":");
+                }).join(";")
+            }
+        });
+        if (!response.ok)
+            throw new Error("TODO: maybe support non-OK status");
+        if (!response.body)
+            return;
+        const temp_doc = document.implementation.createHTMLDocument();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        while (true) {
+            const {
+                value,
+                done
+            } = await reader.read();
+            const chunk = decoder.decode(value, {
+                stream: !done
+            });
+            console.log("Response: " + chunk);
+            temp_doc.write(chunk);
+            if (done)
+                break;
+        }
+        processAll(temp_doc);
+    }
     async function updateViews(url) {
         const matching_views = getMatchingViews(url);
-        try {
-            const response = await fetch(url, {
-                headers: {
-                    views: Array.from(matching_views).map(([element, result]) => {
-                        const name = element.getAttribute("name");
-                        const groups = {
-                            ...result.pathname.groups,
-                            ...result.search.groups
-                        };
-                        const values = Object.entries(groups).flatMap(([name2, value]) => {
-                            return typeof value === "undefined" ? [] : [`${name2}=${value}`];
-                        }).join(",");
-                        return [name, values].join(":");
-                    }).join(";")
-                }
-            });
-            if (!response.ok)
-                throw new Error("TODO: maybe support non-OK status");
-            if (!response.body)
-                return;
-            const temp_doc = document.implementation.createHTMLDocument();
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            while (true) {
-                const {
-                    value,
-                    done
-                } = await reader.read();
-                const chunk = decoder.decode(value, {
-                    stream: !done
-                });
-                console.log("Response: " + chunk);
-                temp_doc.write(chunk);
-                if (done)
-                    break;
-            }
-            processAll(temp_doc);
-        } catch (e) {
-            for (const [view] of matching_views)
-                view.dataset.state = "error";
+        const responseToState = updateViewsFromFetch(url).then(() => "ready").catch(() => "error");
+        const intermediateState = await Promise.race([responseToState, new Promise<string>(resolve => setTimeout(
+            () => resolve("loading"), 500
+        ))]);
+
+        for (const [view] of matching_views)
+            view.dataset.state = intermediateState;
+        }
+
+        const finalState = await responseToState;
+        for (const [view] of matching_views)
+            view.dataset.state = finalState;
         }
     }
     window.navigation.addEventListener("navigate", (navigateEvent) => {
