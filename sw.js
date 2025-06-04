@@ -13,9 +13,9 @@ function handleEvent(event) {
     if (!header)
         return;
     event.respondWith((async () => {
-        const slots = header.split(";");
+        const views = header.split(";");
         let str = "";
-        for (const slot of slots) {
+        for (const view of views) {
             const [name, kvs] = slot.split(":");
             const params = Object.fromEntries(kvs.split(",").map(kv => kv.split("=")));
             str += `<template view=${name}>Hello ${params.page}</template>`
