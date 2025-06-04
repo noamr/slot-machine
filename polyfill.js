@@ -73,12 +73,10 @@
 
         for (const [view] of matching_views)
             view.dataset.state = intermediateState;
-        }
 
         const finalState = await responseToState;
         for (const [view] of matching_views)
             view.dataset.state = finalState;
-        }
     }
     window.navigation.addEventListener("navigate", (navigateEvent) => {
         const to_url = new URL(navigateEvent.destination.url, location.href);
