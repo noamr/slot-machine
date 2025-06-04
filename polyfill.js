@@ -1,5 +1,11 @@
 "use strict";
 (async () => {
+
+    function hasDeclarativeViewTransition() {
+        return Array.from(document.styleSheets).some(s => Array.from(s.cssRules).some(rule => (
+            rule instanceof CSSViewTransitionRule && rule.navigation === "auto"
+        )));
+    }
     for (const r of await navigator.serviceWorker.getRegistrations())
         await r.unregister();
     await navigator.serviceWorker.register("sw.js", {
@@ -23,7 +29,7 @@
             if (!pattern)
                 continue;
             const new_result = pattern.exec(url);
-            if (!new_result) {
+                if (!new_result) {
                 view.innerHTML = "";
                 continue;
             }
@@ -86,7 +92,10 @@
             return;
         navigateEvent.intercept({
             async handler() {
-                await updateViews(to_url);
+                if (hasDeclarativeViewTransition()) {
+                    await document.startViewTransition(() => updateViews(to_url)).updateCallbackDone;
+                } else
+                    await updateViews(to_url);
             }
         });
     });
