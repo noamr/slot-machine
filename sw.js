@@ -9,7 +9,7 @@ function handleEvent(event) {
      * @type {Request}
      */
     const request = event.request;
-    const header = request.headers.get("slots");
+    const header = request.headers.get("views");
     if (!header)
         return;
     event.respondWith((async () => {
@@ -18,7 +18,7 @@ function handleEvent(event) {
         for (const slot of slots) {
             const [name, kvs] = slot.split(":");
             const params = Object.fromEntries(kvs.split(",").map(kv => kv.split("=")));
-            str += `<template slot=${name}>Hello ${params.page}</template>`
+            str += `<template view=${name}>Hello ${params.page}</template>`
         }
         return new Response(str, {headers: {'Content-Type': 'text/html'}});
     })());

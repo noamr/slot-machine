@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="polyfill.js"></script>
-    <title>Vite + TS</title>
+    <title>Declarative views</title>
   </head>
   <body>
     <header>
@@ -13,8 +13,8 @@
         <a href="./about">About</a>
       </nav>
     </header>
-    <slot name="app" match="/slot-machine/:page(home|about|contact)">
+    <view name="app" match="/slot-machine/:page(home|about|contact)">
       Loading...
-    </slot>
+    </view>
   </body>
 </html>

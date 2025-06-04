@@ -10,13 +10,13 @@
 
     const original_html = new WeakMap();
 
-    function getMatchingSlots(url) {
-        const slots = document.querySelectorAll("slot[match][name]");
-        const matching_slots = new Map();
-        for (const slot of slots) {
+    function getMatchingViews(url) {
+        const views = document.querySelectorAll("view[match][name]");
+        const matching_views = new Map();
+        for (const view of views) {
             let pattern = null;
             try {
-                pattern = new URLPattern(slot.getAttribute("match"), location.href);
+                pattern = new URLPattern(view.getAttribute("match"), location.href);
             } catch (e) {
                 console.error(e);
             }
@@ -24,23 +24,23 @@
                 continue;
             const new_result = pattern.exec(url);
             if (!new_result) {
-                slot.innerHTML = "";
+                view.innerHTML = "";
                 continue;
             }
-            if (original_html.has(slot)) {
-                slot.innerHTML = original_html.get(slot);
-                slot.dataset.state = "stale";
+            if (original_html.has(view)) {
+                view.innerHTML = original_html.get(view);
+                view.dataset.state = "stale";
             }
-            matching_slots.set(slot, new_result);
+            matching_views.set(view, new_result);
         };
-        return matching_slots;
+        return matching_views;
     }
-    async function updateSlots(url) {
-        const matching_slots = getMatchingSlots(url);
+    async function updateViews(url) {
+        const matching_views = getMatchingViews(url);
         try {
             const response = await fetch(url, {
                 headers: {
-                    slots: Array.from(matching_slots).map(([element, result]) => {
+                    views: Array.from(matching_views).map(([element, result]) => {
                         const name = element.getAttribute("name");
                         const groups = {
                             ...result.pathname.groups,
@@ -75,38 +75,38 @@
             }
             processAll(temp_doc);
         } catch (e) {
-            for (const [slot] of matching_slots)
-                slot.dataset.state = "error";
+            for (const [view] of matching_views)
+                view.dataset.state = "error";
         }
     }
     window.navigation.addEventListener("navigate", (navigateEvent) => {
         const to_url = new URL(navigateEvent.destination.url, location.href);
-        const matching_slots = getMatchingSlots(to_url);
-        if (!matching_slots.size)
+        const matching_views = getMatchingViews(to_url);
+        if (!matching_views.size)
             return;
         navigateEvent.intercept({
             async handler() {
-                await updateSlots(to_url);
+                await updateViews(to_url);
             }
         });
     });
 
     function processTemplate(template) {
-        const slotName = template.getAttribute("slot");
-        const slot = document.querySelector(`slot[match][name=${slotName}]`);
-        if (!slot)
+        const viewName = template.getAttribute("view");
+        const view = document.querySelector(`view[match][name=${viewName}]`);
+        if (!view)
             return;
-        if (!original_html.has(slot)) {
-            original_html.set(slot, slot.innerHTML);
+        if (!original_html.has(view)) {
+            original_html.set(view, view.innerHTML);
         }
-        slot.innerHTML = "";
-        slot.appendChild(template.content);
-        slot.dataset.state = "ready";
+        view.innerHTML = "";
+        view.appendChild(template.content);
+        view.dataset.state = "ready";
     }
     new MutationObserver((records) => {
         for (const r of records) {
             for (const node of [...r.addedNodes, ...r.removedNodes]) {
-                if (node.nodeType === Node.ELEMENT_NODE && node.matches("template[slot]")) {
+                if (node.nodeType === Node.ELEMENT_NODE && node.matches("template[view]")) {
                     processTemplate(node);
                 }
             }
@@ -117,11 +117,11 @@
     });
 
     function processAll(doc) {
-        const templates = doc.querySelectorAll("template[slot]");
+        const templates = doc.querySelectorAll("template[view]");
         for (const template of templates) {
             processTemplate(template);
         }
     }
     processAll(document);
-    updateSlots(new URL(location.href));
+    updateViews(new URL(location.href));
 })();
